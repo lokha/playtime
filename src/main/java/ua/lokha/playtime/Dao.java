@@ -2,6 +2,7 @@ package ua.lokha.playtime;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
+import lombok.Data;
 import lombok.Getter;
 import lombok.SneakyThrows;
 
@@ -143,7 +144,6 @@ public class Dao {
                 values.append("`").append(serverName).append("` = `").append(serverName).append("` + ").append(seconds);
             });
             String sql = "UPDATE " + tableName + " SET " + values.toString() + " WHERE `username` = ?";
-            System.out.println("debug update: " + sql);
             try (PreparedStatement statement = connection.prepareStatement(sql)) {
                 statement.setString(1, name);
                 statement.executeUpdate();
@@ -159,12 +159,55 @@ public class Dao {
             }
             sqlBuilder.append(")");
             String sql = sqlBuilder.toString();
-            System.out.println("debug insert: " + sql);
             try (PreparedStatement statement = connection.prepareStatement(sql)) {
                 statement.setString(1, name);
                 statement.execute();
             }
         }
+    }
+
+    @SneakyThrows
+    public UserInfo getInfo(String username, Set<String> servers) {
+        UserInfo info = new UserInfo();
+        info.setUsername(username);
+
+        Connection connection = this.getConnection();
+        Map<String, Integer> onlineSeconds = new HashMap<>(MapUtils.calculateExpectedSize(servers.size()));
+        try (PreparedStatement statement = connection.prepareStatement("select " + String.join(", ", servers) + " from " + tableName + " " +
+                "where `username` = ?")) {
+            statement.setString(1, username);
+            try (ResultSet set = statement.executeQuery()) {
+                if (!set.next()) {
+                    for (String server : servers) {
+                        onlineSeconds.put(server, 0);
+                    }
+                } else {
+                    for (String server : servers) {
+                        onlineSeconds.put(server, set.getInt(server));
+                    }
+                }
+            }
+        }
+        info.setOnlineSeconds(onlineSeconds);
+
+        int sumSeconds = info.calcSumSeconds();
+
+        try (PreparedStatement statement = connection.prepareStatement("SELECT COUNT(*) as count_up FROM " + tableName + " WHERE (" +
+                servers.stream()
+                        .map(serverName -> "`" + serverName + "`")
+                        .collect(Collectors.joining(" + "))
+                + ") > ?")) {
+            statement.setInt(1, sumSeconds);
+            try (ResultSet set = statement.executeQuery()) {
+                if (!set.next()) {
+                    throw new RuntimeException("rows empty");
+                }
+
+                info.setPlace(set.getInt("count_up"));
+            }
+        }
+
+        return info;
     }
 
     public static void async(Consumer<Dao> consumer) {
@@ -180,6 +223,17 @@ public class Dao {
                     e.printStackTrace();
                 }
             });
+        }
+    }
+
+    @Data
+    public static class UserInfo {
+        private String username;
+        private int place;
+        private Map<String, Integer> onlineSeconds;
+
+        public int calcSumSeconds() {
+            return onlineSeconds.values().stream().mapToInt(Integer::intValue).sum();
         }
     }
 }

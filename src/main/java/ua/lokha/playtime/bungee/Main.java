@@ -34,6 +34,7 @@ public class Main extends Plugin {
 
         PluginManager manager = BungeeCord.getInstance().getPluginManager();
         manager.registerCommand(this, new AdminPlayTimeCommand());
+        manager.registerCommand(this, new PlayTimeCommand());
 
         BungeeCord.getInstance().getPluginManager().registerListener(this, new Events());
     }
@@ -41,6 +42,8 @@ public class Main extends Plugin {
     public void reloadCustomConfig() {
         this.getLogger().info("Reload config...");
         customConfig = new Config(new File(this.getDataFolder(), "config.yml"));
+
+        Message.getMessages().forEach(message -> message.init(customConfig));
 
         servers = new HashSet<>(customConfig.getOrSet("servers-list", Collections.emptyList()));
 

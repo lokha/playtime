@@ -33,7 +33,6 @@ public class Metadata {
             OnlineInfo onlineInfo = onlineUpdate.computeIfAbsent(currentServer, OnlineInfo::new);
             LocalDateTime now = LocalDateTime.now();
             int between = (int) ChronoUnit.SECONDS.between(onlineInfo.getLastUpdate(), now);
-            System.out.println("debug: add seconds " + currentServer + " " + between);
             onlineInfo.setSeconds(onlineInfo.getSeconds() + between);
             onlineInfo.setLastUpdate(now);
         }
