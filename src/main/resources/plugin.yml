@@ -1,0 +1,6 @@
+name: PlayTime
+version: ${project.version}
+main: ua.lokha.playtime.bukkit.Main
+
+# Кодил это? Впиши себя сам
+authors: [lokha]
