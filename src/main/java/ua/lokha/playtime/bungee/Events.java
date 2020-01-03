@@ -1,0 +1,66 @@
+package ua.lokha.playtime.bungee;
+
+import lombok.var;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
+import net.md_5.bungee.api.connection.Server;
+import net.md_5.bungee.api.event.PlayerDisconnectEvent;
+import net.md_5.bungee.api.event.ServerSwitchEvent;
+import net.md_5.bungee.api.plugin.Listener;
+import net.md_5.bungee.event.EventHandler;
+import ua.lokha.playtime.Dao;
+import ua.lokha.playtime.MapUtils;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class Events implements Listener {
+
+    @EventHandler
+    public void on(ServerSwitchEvent event) {
+        ProxiedPlayer player = event.getPlayer();
+        Metadata metadata = Metadata.get(event.getPlayer());
+
+        metadata.updateCurrentServer();
+
+        Server server = player.getServer();
+        if (server != null) {
+            String serverName = server.getInfo().getName();
+            if (Main.getInstance().getServers().contains(serverName)) {
+                metadata.setCurrentServer(serverName);
+            } else {
+                metadata.setCurrentServer(null);
+            }
+        }
+    }
+
+    @EventHandler
+    public void on(PlayerDisconnectEvent event) {
+        Metadata metadata = Metadata.get(event.getPlayer());
+        updateTime(metadata);
+    }
+
+    public static void updateTime(Metadata metadata) {
+        Dao.async(dao -> {
+            synchronized (metadata) {
+                metadata.updateCurrentServer();
+                var changes = metadata.getOnlineUpdate().values();
+                Map<String, Integer> update = new HashMap<>(MapUtils.calculateExpectedSize(changes.size()));
+                for (var change : changes) {
+                    if (Main.getInstance().getServers().contains(change.getServerName()) && change.getSeconds() > 0) {
+                        update.put(change.getServerName(), change.getSeconds());
+                    }
+                    change.setSeconds(0);
+                }
+
+                if (!update.isEmpty()) {
+                    dao.update(metadata.getPlayer().getName(), Main.getInstance().getServers(), update);
+                }
+            }
+        });
+    }
+
+    @EventHandler(priority = Byte.MAX_VALUE)
+    public void onMax(PlayerDisconnectEvent event) {
+        Metadata.getPlayers().remove(event.getPlayer());
+    }
+}

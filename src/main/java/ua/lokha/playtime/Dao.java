@@ -8,11 +8,11 @@ import lombok.SneakyThrows;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 @SuppressWarnings("SqlNoDataSourceInspection")
 public class Dao {
@@ -50,7 +50,6 @@ public class Dao {
         try (PreparedStatement statement = connection.prepareStatement(
                 "CREATE TABLE IF NOT EXISTS `" + tableName + "` (" +
                         "    `username` VARCHAR(16) NOT NULL," +
-                        "    `place` INT NOT NULL," +
                         "    PRIMARY KEY (`username`)" +
                         ")" +
                         "COLLATE='utf8_general_ci';")) {
@@ -59,7 +58,7 @@ public class Dao {
     }
 
     @SneakyThrows
-    public void createServerColumns(List<String> servers) {
+    public void createServerColumns(Collection<String> servers) {
         Connection connection = this.getConnection();
         List<String> columns = new ArrayList<>();
         try (PreparedStatement statement = connection.prepareStatement("SHOW COLUMNS FROM " + tableName);
@@ -73,7 +72,7 @@ public class Dao {
             if (!columns.contains(server)) {
                 Common.getLogger().info("Создаем колонку для сервера " + server);
                 try (PreparedStatement statement = connection.prepareStatement("ALTER TABLE `" + tableName + "`" +
-                        "ADD COLUMN `" + server + "` INT NOT NULL DEFAULT '0' AFTER `place`;")) {
+                        "ADD COLUMN `" + server + "` INT NOT NULL DEFAULT '0' AFTER `username`;")) {
                     statement.execute();
                 }
             }
@@ -101,6 +100,71 @@ public class Dao {
             connection = dataSource.getConnection();
         }
         return connection;
+    }
+
+    @SneakyThrows
+    public void update(String name, Set<String> servers, Map<String, Integer> addOnlineSeconds) {
+        if (addOnlineSeconds.isEmpty()) {
+            return;
+        }
+
+        Connection connection = this.getConnection();
+        Map<String, Integer> onlineSeconds = null;
+        try (PreparedStatement statement = connection.prepareStatement("select " + String.join(", ", servers) + " from " + tableName + " " +
+                "where `username` = ?")) {
+            statement.setString(1, name);
+            try (ResultSet set = statement.executeQuery()) {
+                if (set.next()) {
+                    onlineSeconds = new HashMap<>(MapUtils.calculateExpectedSize(servers.size()));
+                    for (String server : servers) {
+                        onlineSeconds.put(server, set.getInt(server));
+                    }
+                }
+            }
+        }
+
+        int sumSeconds = 0;
+        if (onlineSeconds != null) {
+            for (String server : servers) {
+                sumSeconds += onlineSeconds.getOrDefault(server, 0) + addOnlineSeconds.getOrDefault(server, 0);
+            }
+        } else {
+            for (String server : servers) {
+                sumSeconds += addOnlineSeconds.getOrDefault(server, 0);
+            }
+        }
+
+        if (onlineSeconds != null) {
+            StringBuilder values = new StringBuilder();
+            addOnlineSeconds.forEach((serverName, seconds) -> {
+                if (values.length() > 0) {
+                    values.append(", ");
+                }
+                values.append("`").append(serverName).append("` = `").append(serverName).append("` + ").append(seconds);
+            });
+            String sql = "UPDATE " + tableName + " SET " + values.toString() + " WHERE `username` = ?";
+            System.out.println("debug update: " + sql);
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                statement.setString(1, name);
+                statement.executeUpdate();
+            }
+        } else {
+            StringBuilder sqlBuilder = new StringBuilder("INSERT INTO `" + tableName + "` (`username`");
+            for (String serverName : servers) {
+                sqlBuilder.append(", `").append(serverName).append("`");
+            }
+            sqlBuilder.append(") VALUES (?");
+            for (String serverName : servers) {
+                sqlBuilder.append(", ").append(addOnlineSeconds.getOrDefault(serverName, 0));
+            }
+            sqlBuilder.append(")");
+            String sql = sqlBuilder.toString();
+            System.out.println("debug insert: " + sql);
+            try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                statement.setString(1, name);
+                statement.execute();
+            }
+        }
     }
 
     public static void async(Consumer<Dao> consumer) {

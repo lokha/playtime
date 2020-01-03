@@ -10,7 +10,9 @@ import ua.lokha.playtime.Dao;
 
 import java.io.File;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class Main extends Plugin {
     private static Main instance;
@@ -19,7 +21,7 @@ public class Main extends Plugin {
     private Config customConfig;
 
     @Getter
-    private List<String> servers;
+    private Set<String> servers;
 
     public Main() {
         instance = this;
@@ -32,13 +34,15 @@ public class Main extends Plugin {
 
         PluginManager manager = BungeeCord.getInstance().getPluginManager();
         manager.registerCommand(this, new AdminPlayTimeCommand());
+
+        BungeeCord.getInstance().getPluginManager().registerListener(this, new Events());
     }
 
     public void reloadCustomConfig() {
         this.getLogger().info("Reload config...");
         customConfig = new Config(new File(this.getDataFolder(), "config.yml"));
 
-        servers = customConfig.getOrSet("servers-list", Collections.emptyList());
+        servers = new HashSet<>(customConfig.getOrSet("servers-list", Collections.emptyList()));
 
         this.getLogger().info("Reinit database connection...");
         Dao.getInstance().stop();
