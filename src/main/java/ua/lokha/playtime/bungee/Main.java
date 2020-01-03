@@ -42,6 +42,7 @@ public class Main extends Plugin {
     public void reloadCustomConfig() {
         this.getLogger().info("Reload config...");
         customConfig = new Config(new File(this.getDataFolder(), "config.yml"));
+        customConfig.setDescription("/adminplaytime reload - перезагрузить этот конфиг, перезагружаются все параметры (право command.adminplaytime)");
 
         Message.getMessages().forEach(message -> message.init(customConfig));
 
