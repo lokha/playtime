@@ -203,7 +203,7 @@ public class Dao {
                     throw new RuntimeException("rows empty");
                 }
 
-                info.setPlace(set.getInt("count_up"));
+                info.setPlace(set.getInt("count_up") + 1);
             }
         }
 
