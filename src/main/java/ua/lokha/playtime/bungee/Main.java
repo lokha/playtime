@@ -9,12 +9,17 @@ import ua.lokha.playtime.Config;
 import ua.lokha.playtime.Dao;
 
 import java.io.File;
+import java.util.Collections;
+import java.util.List;
 
 public class Main extends Plugin {
     private static Main instance;
 
     @Getter
     private Config customConfig;
+
+    @Getter
+    private List<String> servers;
 
     public Main() {
         instance = this;
@@ -33,10 +38,14 @@ public class Main extends Plugin {
         this.getLogger().info("Reload config...");
         customConfig = new Config(new File(this.getDataFolder(), "config.yml"));
 
+        servers = customConfig.getOrSet("servers-list", Collections.emptyList());
+
         this.getLogger().info("Reinit database connection...");
         Dao.getInstance().stop();
         try {
             Dao.getInstance().init(customConfig, this.getClass().getClassLoader());
+
+            Dao.getInstance().createServerColumns(servers);
         } catch (Exception e) {
             Common.getLogger().severe("Соединение с базой не установлено, настройте данные от базы и перезагрузите плагин /adminplaytime reload");
             e.printStackTrace();

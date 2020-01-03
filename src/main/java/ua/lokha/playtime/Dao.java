@@ -7,6 +7,8 @@ import lombok.SneakyThrows;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -24,6 +26,7 @@ public class Dao {
 
     @Getter
     private ExecutorService service;
+    private String tableName;
 
     public void init(Config config, ClassLoader classLoader) {
         this.stop();
@@ -35,7 +38,7 @@ public class Dao {
         dataSource.setUser(config.getOrSet("database-settings.username", "admin"));
         dataSource.setPassword(config.getOrSet("database-settings.password", ""));
 
-        String tableName = config.getOrSet("database-settings.table-name", "playtime_manager");
+        tableName = config.getOrSet("database-settings.table-name", "playtime_manager");
         this.initTable(tableName);
 
         service = Executors.newFixedThreadPool(1, new ThreadFactoryBuilder().setNameFormat("PlayTime Database Thread %d").build());
@@ -45,13 +48,35 @@ public class Dao {
     private void initTable(String tableName) {
         Connection connection = this.getConnection();
         try (PreparedStatement statement = connection.prepareStatement(
-                ("CREATE TABLE IF NOT EXISTS `{table}` (" +
+                "CREATE TABLE IF NOT EXISTS `" + tableName + "` (" +
                         "    `username` VARCHAR(16) NOT NULL," +
                         "    `place` INT NOT NULL," +
                         "    PRIMARY KEY (`username`)" +
                         ")" +
-                        "COLLATE='utf8_general_ci';").replace("{table}", tableName))) {
+                        "COLLATE='utf8_general_ci';")) {
             statement.execute();
+        }
+    }
+
+    @SneakyThrows
+    public void createServerColumns(List<String> servers) {
+        Connection connection = this.getConnection();
+        List<String> columns = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement("SHOW COLUMNS FROM " + tableName);
+             ResultSet set = statement.executeQuery()) {
+            while (set.next()) {
+                columns.add(set.getString("Field"));
+            }
+        }
+
+        for (String server : servers) {
+            if (!columns.contains(server)) {
+                Common.getLogger().info("Создаем колонку для сервера " + server);
+                try (PreparedStatement statement = connection.prepareStatement("ALTER TABLE `" + tableName + "`" +
+                        "ADD COLUMN `" + server + "` INT NOT NULL DEFAULT '0' AFTER `place`;")) {
+                    statement.execute();
+                }
+            }
         }
     }
 
