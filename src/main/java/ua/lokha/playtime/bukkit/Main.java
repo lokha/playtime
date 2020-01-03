@@ -1,6 +1,7 @@
 package ua.lokha.playtime.bukkit;
 
 import org.bukkit.plugin.java.JavaPlugin;
+import ua.lokha.playtime.Common;
 
 /**
  * Главный класс плагина
@@ -15,7 +16,7 @@ public class Main extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        this.getLogger().info(this.getName() + " enabled");
+        Common.setLogger(this.getLogger());
     }
 
     public static Main getInstance() {
