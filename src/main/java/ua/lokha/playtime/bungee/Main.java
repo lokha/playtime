@@ -40,6 +40,8 @@ public class Main extends Plugin {
         manager.registerCommand(this, new AdminPlayTimeCommand());
         manager.registerCommand(this, new PlayTimeCommand());
 
+        BungeeCord.getInstance().registerChannel("playtime");
+
         BungeeCord.getInstance().getPluginManager().registerListener(this, new Events());
     }
 
@@ -74,7 +76,7 @@ public class Main extends Plugin {
             for (ProxiedPlayer player : BungeeCord.getInstance().getPlayers()) {
                 Events.updateTimeDb(Metadata.get(player));
             }
-        }, syncInterval, syncInterval, TimeUnit.SECONDS);
+        }, 0, syncInterval, TimeUnit.SECONDS);
 
         this.getLogger().info("Plugin successfully reload.");
     }

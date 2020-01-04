@@ -19,6 +19,7 @@ public class Metadata {
     private final ProxiedPlayer player;
     private String currentServer;
     private Map<String, OnlineInfo> onlineUpdate = new HashMap<>(MapUtils.calculateExpectedSize(Main.getInstance().getServers().size()));
+    private boolean afk = false;
 
     public Metadata(ProxiedPlayer player) {
         this.player = player;
@@ -32,17 +33,29 @@ public class Metadata {
         if (currentServer != null) {
             OnlineInfo onlineInfo = onlineUpdate.computeIfAbsent(currentServer, OnlineInfo::new);
             LocalDateTime now = LocalDateTime.now();
-            int between = (int) ChronoUnit.SECONDS.between(onlineInfo.getLastUpdate(), now);
-            onlineInfo.setSeconds(onlineInfo.getSeconds() + between);
+            if (!afk) {
+                int between = (int) ChronoUnit.SECONDS.between(onlineInfo.getLastUpdate(), now);
+                onlineInfo.setSeconds(onlineInfo.getSeconds() + between);
+            }
             onlineInfo.setLastUpdate(now);
         }
     }
 
     public void setCurrentServer(String currentServer) {
+        this.afk = false;
         this.currentServer = currentServer;
         if (currentServer != null) {
-            onlineUpdate.computeIfAbsent(currentServer, OnlineInfo::new);
+            OnlineInfo onlineInfo = onlineUpdate.computeIfAbsent(currentServer, OnlineInfo::new);
+            onlineInfo.setLastUpdate(LocalDateTime.now());
         }
+    }
+
+    public void setAfk(boolean afk) {
+        if (afk == this.afk) {
+            return;
+        }
+        this.updateCurrentServer();
+        this.afk = afk;
     }
 
     @Data

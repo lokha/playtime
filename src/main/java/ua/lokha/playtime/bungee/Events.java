@@ -4,12 +4,14 @@ import lombok.var;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.connection.Server;
 import net.md_5.bungee.api.event.PlayerDisconnectEvent;
+import net.md_5.bungee.api.event.PluginMessageEvent;
 import net.md_5.bungee.api.event.ServerSwitchEvent;
 import net.md_5.bungee.api.plugin.Listener;
 import net.md_5.bungee.event.EventHandler;
 import ua.lokha.playtime.Dao;
 import ua.lokha.playtime.MapUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,6 +39,21 @@ public class Events implements Listener {
     public void on(PlayerDisconnectEvent event) {
         Metadata metadata = Metadata.get(event.getPlayer());
         updateTimeDb(metadata);
+    }
+
+    @EventHandler
+    public void on(PluginMessageEvent event) {
+        if (event.getReceiver() instanceof ProxiedPlayer) {
+            if (event.getTag().equals("playtime")) {
+                Metadata metadata = Metadata.get((ProxiedPlayer) event.getReceiver());
+                String message = new String(event.getData(), StandardCharsets.UTF_8);
+                String[] data = message.split("☭");
+                if (data[0].equals("afk")) {
+                    boolean afk = Boolean.parseBoolean(data[1]);
+                    metadata.setAfk(afk);
+                }
+            }
+        }
     }
 
     public static void updateTimeDb(Metadata metadata) {
