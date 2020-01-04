@@ -36,10 +36,10 @@ public class Events implements Listener {
     @EventHandler
     public void on(PlayerDisconnectEvent event) {
         Metadata metadata = Metadata.get(event.getPlayer());
-        updateTime(metadata);
+        updateTimeDb(metadata);
     }
 
-    public static void updateTime(Metadata metadata) {
+    public static void updateTimeDb(Metadata metadata) {
         Dao.async(dao -> {
             synchronized (metadata) {
                 metadata.updateCurrentServer();

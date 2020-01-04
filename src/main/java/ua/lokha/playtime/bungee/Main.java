@@ -2,17 +2,20 @@ package ua.lokha.playtime.bungee;
 
 import lombok.Getter;
 import net.md_5.bungee.BungeeCord;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.plugin.Plugin;
 import net.md_5.bungee.api.plugin.PluginManager;
+import net.md_5.bungee.api.scheduler.ScheduledTask;
 import ua.lokha.playtime.Common;
 import ua.lokha.playtime.Config;
 import ua.lokha.playtime.Dao;
+import ua.lokha.playtime.Try;
 
 import java.io.File;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class Main extends Plugin {
     private static Main instance;
@@ -22,6 +25,7 @@ public class Main extends Plugin {
 
     @Getter
     private Set<String> servers;
+    private ScheduledTask syncDb;
 
     public Main() {
         instance = this;
@@ -58,6 +62,19 @@ public class Main extends Plugin {
             Common.getLogger().severe("Соединение с базой не установлено, настройте данные от базы и перезагрузите плагин /adminplaytime reload");
             e.printStackTrace();
         }
+
+        if (syncDb != null) {
+            this.getLogger().info("Останавливаем таймер обновления времени.");
+            Try.ignore(syncDb::cancel);
+            syncDb = null;
+        }
+        int syncInterval = customConfig.getOrSetNumber("sync-interval-seconds", 60).intValue();
+        this.getLogger().info("Запускаем таймер обновления времени каждые " + syncInterval + " секунд.");
+        syncDb = BungeeCord.getInstance().getScheduler().schedule(this, () -> {
+            for (ProxiedPlayer player : BungeeCord.getInstance().getPlayers()) {
+                Events.updateTimeDb(Metadata.get(player));
+            }
+        }, syncInterval, syncInterval, TimeUnit.SECONDS);
 
         this.getLogger().info("Plugin successfully reload.");
     }
