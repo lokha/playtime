@@ -76,6 +76,10 @@ public class Dao {
                         "ADD COLUMN `" + server + "` INT NOT NULL DEFAULT '0' AFTER `username`;")) {
                     statement.execute();
                 }
+                try (PreparedStatement statement = connection.prepareStatement("ALTER TABLE `" + tableName + "`" +
+                        "ADD INDEX `" + server + "` (`" + server + "`);")) {
+                    statement.execute();
+                }
             }
         }
     }
