@@ -40,7 +40,7 @@ public class Main extends Plugin {
         manager.registerCommand(this, new AdminPlayTimeCommand());
         manager.registerCommand(this, new PlayTimeCommand());
 
-        BungeeCord.getInstance().registerChannel("playtime");
+        BungeeCord.getInstance().registerChannel("playtime:playtime");
 
         BungeeCord.getInstance().getPluginManager().registerListener(this, new Events());
     }

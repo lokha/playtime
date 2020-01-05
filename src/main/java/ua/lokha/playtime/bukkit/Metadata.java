@@ -28,7 +28,7 @@ public class Metadata {
 
     public void setAfk(boolean afk) {
         this.afk = afk;
-        player.sendPluginMessage(Main.getInstance(), "playtime", ("afk☭" + afk).getBytes(StandardCharsets.UTF_8));
+        player.sendPluginMessage(Main.getInstance(), "playtime:playtime", ("afk☭" + afk).getBytes(StandardCharsets.UTF_8));
     }
 
     public void setLastMove(long lastMove) {

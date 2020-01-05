@@ -21,7 +21,7 @@ public class Main extends JavaPlugin {
     public void onEnable() {
         Common.setLogger(this.getLogger());
 
-        Bukkit.getMessenger().registerOutgoingPluginChannel(this, "playtime");
+        Bukkit.getMessenger().registerOutgoingPluginChannel(this, "playtime:playtime");
 
         Bukkit.getPluginManager().registerEvents(new Events(), this);
 

@@ -44,7 +44,7 @@ public class Events implements Listener {
     @EventHandler
     public void on(PluginMessageEvent event) {
         if (event.getReceiver() instanceof ProxiedPlayer) {
-            if (event.getTag().equals("playtime")) {
+            if (event.getTag().equals("playtime:playtime")) {
                 Metadata metadata = Metadata.get((ProxiedPlayer) event.getReceiver());
                 String message = new String(event.getData(), StandardCharsets.UTF_8);
                 String[] data = message.split("☭");
