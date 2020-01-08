@@ -27,6 +27,11 @@ public class Metadata {
     }
 
     public void setAfk(boolean afk) {
+        if (afk) {
+            Main.getInstance().getLogger().info("Игрок " + player.getName() + " ушел в AFK.");
+        } else {
+            Main.getInstance().getLogger().info("Игрок " + player.getName() + " вышел из AFK.");
+        }
         this.afk = afk;
         player.sendPluginMessage(Main.getInstance(), "playtime:playtime", ("afk☭" + afk).getBytes(StandardCharsets.UTF_8));
     }

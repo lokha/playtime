@@ -54,6 +54,11 @@ public class Metadata {
         if (afk == this.afk) {
             return;
         }
+        if (afk) {
+            Main.getInstance().getLogger().info("Игрок " + player.getName() + " ушел в AFK.");
+        } else {
+            Main.getInstance().getLogger().info("Игрок " + player.getName() + " вышел из AFK.");
+        }
         this.updateCurrentServer();
         this.afk = afk;
     }
